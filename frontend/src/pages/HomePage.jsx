@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { productApi, categoryApi } from '../services/api'
 import ProductCard from '../components/ProductCard'
 
@@ -43,18 +44,26 @@ export default function HomePage() {
       {/* Hero */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">AI-Powered Shop</h1>
-        <p className="text-gray-500">Browse products or ask the <a href="/chat" className="text-brand-600 hover:underline">AI assistant</a> to find what you need</p>
+        <p className="text-gray-500">
+          Browse products or ask the{' '}
+          <Link to="/chat" className="text-brand-600 hover:underline">AI assistant</Link>
+          {' '}to find what you need
+        </p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <label htmlFor="product-search" className="sr-only">Search products</label>
         <input
+          id="product-search"
           className="input flex-1"
           placeholder="Search products..."
           value={search}
           onChange={handleSearch}
         />
+        <label htmlFor="category-filter" className="sr-only">Filter by category</label>
         <select
+          id="category-filter"
           className="input sm:w-48"
           value={selectedCategory}
           onChange={(e) => { setSelectedCategory(e.target.value); setPage(0) }}
@@ -83,8 +92,8 @@ export default function HomePage() {
 
       {error && (
         <div className="text-center py-16">
-          <p className="text-red-500 mb-2">⚠️ {error}</p>
-          <p className="text-sm text-gray-400">Make sure the backend is running at localhost:8080</p>
+          <p className="text-red-500 mb-2">⚠️ Could not load products</p>
+          <p className="text-sm text-gray-400">Please check your connection and try again.</p>
         </div>
       )}
 
@@ -102,7 +111,7 @@ export default function HomePage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-8">
+            <nav className="flex justify-center gap-2 mt-8" aria-label="Pagination">
               <button
                 className="btn-secondary"
                 disabled={page === 0}
@@ -120,7 +129,7 @@ export default function HomePage() {
               >
                 Next →
               </button>
-            </div>
+            </nav>
           )}
         </>
       )}

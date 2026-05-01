@@ -1,28 +1,35 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { cartApi } from '../services/api'
+import { useAuth } from './AuthContext'
 
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
+  const { userId } = useAuth()
   const [cart, setCart] = useState({ items: [], totalItems: 0, totalAmount: 0 })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const refresh = useCallback(async () => {
     try {
-      const data = await cartApi.get()
+      const data = await cartApi.get(userId)
       setCart(data)
+      setError(null)
     } catch {
-      // cart may not exist yet
+      // cart may not exist yet for a new user — not a visible error
     }
-  }, [])
+  }, [userId])
 
   useEffect(() => { refresh() }, [refresh])
 
   const addItem = async (productId, quantity = 1) => {
     setLoading(true)
+    setError(null)
     try {
-      const data = await cartApi.addItem(productId, quantity)
+      const data = await cartApi.addItem(userId, productId, quantity)
       setCart(data)
+    } catch (err) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -30,26 +37,44 @@ export function CartProvider({ children }) {
 
   const removeItem = async (productId) => {
     setLoading(true)
+    setError(null)
     try {
-      const data = await cartApi.removeItem(productId)
+      const data = await cartApi.removeItem(userId, productId)
       setCart(data)
+    } catch (err) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
   const updateItem = async (productId, quantity) => {
-    const data = await cartApi.updateItem(productId, quantity)
-    setCart(data)
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await cartApi.updateItem(userId, productId, quantity)
+      setCart(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const clearCart = async () => {
-    await cartApi.clear()
-    setCart({ items: [], totalItems: 0, totalAmount: 0 })
+    setLoading(true)
+    try {
+      await cartApi.clear(userId)
+      setCart({ items: [], totalItems: 0, totalAmount: 0 })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <CartContext.Provider value={{ cart, loading, addItem, removeItem, updateItem, clearCart, refresh }}>
+    <CartContext.Provider value={{ cart, loading, error, addItem, removeItem, updateItem, clearCart, refresh }}>
       {children}
     </CartContext.Provider>
   )

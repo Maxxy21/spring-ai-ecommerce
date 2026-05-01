@@ -1,13 +1,19 @@
 package com.maxwell.ecommerce.service;
 
+import com.maxwell.ecommerce.ai.ProductFunctions.ProductDetailRequest;
+import com.maxwell.ecommerce.ai.ProductFunctions.ProductSearchRequest;
+import com.maxwell.ecommerce.ai.ProductFunctions.ProductSummary;
 import com.maxwell.ecommerce.dto.request.AiChatRequest;
 import com.maxwell.ecommerce.dto.response.AiChatResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 @Slf4j
@@ -25,11 +31,18 @@ public class AiAssistantService {
             """;
 
     private final ChatClient chatClient;
+    private final Function<ProductSearchRequest, List<ProductSummary>> searchProducts;
+    private final Function<ProductDetailRequest, Object> getProductDetails;
 
-    public AiAssistantService(ChatClient.Builder chatClientBuilder) {
+    public AiAssistantService(
+            ChatClient.Builder chatClientBuilder,
+            Function<ProductSearchRequest, List<ProductSummary>> searchProducts,
+            Function<ProductDetailRequest, Object> getProductDetails) {
         this.chatClient = chatClientBuilder
                 .defaultSystem(SYSTEM_PROMPT)
                 .build();
+        this.searchProducts = searchProducts;
+        this.getProductDetails = getProductDetails;
     }
 
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallbackChat")
@@ -38,7 +51,16 @@ public class AiAssistantService {
 
         String response = chatClient.prompt()
                 .user(request.getMessage())
-                .functions("searchProducts", "getProductDetails")
+                .toolCallbacks(
+                    FunctionToolCallback.builder("searchProducts", searchProducts)
+                        .description("Search for products by keyword. Returns a list of matching products with name, price, and availability.")
+                        .inputType(ProductSearchRequest.class)
+                        .build(),
+                    FunctionToolCallback.builder("getProductDetails", getProductDetails)
+                        .description("Get detailed information about a specific product by its ID.")
+                        .inputType(ProductDetailRequest.class)
+                        .build()
+                )
                 .call()
                 .content();
 

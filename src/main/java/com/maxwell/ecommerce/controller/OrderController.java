@@ -1,5 +1,6 @@
 package com.maxwell.ecommerce.controller;
 
+import com.maxwell.ecommerce.config.SecurityUtils;
 import com.maxwell.ecommerce.dto.request.OrderRequest;
 import com.maxwell.ecommerce.dto.response.OrderResponse;
 import com.maxwell.ecommerce.model.OrderStatus;
@@ -24,15 +25,17 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    @Operation(summary = "Place an order from the user's cart")
+    @Operation(summary = "Place an order from the authenticated user's cart")
     public ResponseEntity<OrderResponse> placeOrder(@Valid @RequestBody OrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.placeOrder(request));
+        String userId = SecurityUtils.getCurrentUserId();
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.placeOrder(userId, request));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID")
     public ResponseEntity<OrderResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.findById(id));
+        String userId = SecurityUtils.getCurrentUserId();
+        return ResponseEntity.ok(orderService.findById(id, userId));
     }
 
     @GetMapping("/user/{userId}")
@@ -40,6 +43,7 @@ public class OrderController {
     public ResponseEntity<Page<OrderResponse>> getByUser(
             @PathVariable String userId,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+        SecurityUtils.requireSelf(userId);
         return ResponseEntity.ok(orderService.findByUser(userId, pageable));
     }
 

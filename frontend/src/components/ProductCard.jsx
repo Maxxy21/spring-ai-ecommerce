@@ -1,24 +1,28 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { categoryEmoji } from '../utils/categoryEmoji'
 
-export default function ProductCard({ product }) {
+const ADDED_RESET_MS = 1500
+
+function ProductCard({ product }) {
   const { addItem, loading } = useCart()
   const [added, setAdded] = useState(false)
 
   const handleAddToCart = async () => {
     await addItem(product.id, 1)
     setAdded(true)
-    setTimeout(() => setAdded(false), 1500)
+    setTimeout(() => setAdded(false), ADDED_RESET_MS)
   }
 
   return (
     <div className="card flex flex-col">
-      <div className="bg-gray-100 h-40 flex items-center justify-center text-5xl">
-        {product.categoryName === 'Electronics' ? '💻' :
-         product.categoryName === 'Books' ? '📚' :
-         product.categoryName === 'Sports' ? '🏋️' :
-         product.categoryName === 'Clothing' ? '👕' : '📦'}
+      <div
+        className="bg-gray-100 h-40 flex items-center justify-center text-5xl"
+        role="img"
+        aria-label={product.categoryName ?? 'Product'}
+      >
+        {categoryEmoji(product.categoryName)}
       </div>
 
       <div className="p-4 flex flex-col flex-1">
@@ -48,8 +52,10 @@ export default function ProductCard({ product }) {
           </div>
 
           <button
+            type="button"
             onClick={handleAddToCart}
             disabled={!product.inStock || loading}
+            aria-label={`Add ${product.name} to cart`}
             className="btn-primary text-xs px-3 py-1.5"
           >
             {added ? '✓ Added' : '+ Cart'}
@@ -59,3 +65,5 @@ export default function ProductCard({ product }) {
     </div>
   )
 }
+
+export default memo(ProductCard)

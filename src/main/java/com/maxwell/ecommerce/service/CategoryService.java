@@ -21,15 +21,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
 
     public List<CategoryResponse> findAll() {
-        return categoryRepository.findAllWithProductCount().stream()
-                .map(row -> CategoryResponse.builder()
-                        .id((Long) row[0])
-                        .name((String) row[1])
-                        .description((String) row[2])
-                        .createdAt(row[3] != null ? ((java.time.LocalDateTime) row[3]) : null)
-                        .productCount(((Number) row[4]).intValue())
-                        .build())
-                .toList();
+        return categoryRepository.findAllWithProductCount();
     }
 
     public CategoryResponse findById(Long id) {

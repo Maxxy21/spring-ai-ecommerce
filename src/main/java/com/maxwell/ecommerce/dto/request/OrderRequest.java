@@ -6,9 +6,6 @@ import lombok.Data;
 @Data
 public class OrderRequest {
 
-    @NotBlank(message = "User ID is required")
-    private String userId;
-
     @NotBlank(message = "Shipping address is required")
     private String shippingAddress;
 

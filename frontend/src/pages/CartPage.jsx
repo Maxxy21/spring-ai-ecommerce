@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { orderApi } from '../services/api'
+import QuantityControl from '../components/QuantityControl'
 
 export default function CartPage() {
-  const { cart, removeItem, updateItem, clearCart } = useCart()
+  const { cart, error: cartError, removeItem, updateItem, clearCart } = useCart()
   const [address, setAddress] = useState('')
   const [placing, setPlacing] = useState(false)
   const [orderError, setOrderError] = useState(null)
@@ -40,39 +41,41 @@ export default function CartPage() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Shopping Cart</h1>
 
+      {cartError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
+          {cartError}
+        </div>
+      )}
+
       <div className="card divide-y divide-gray-100 mb-6">
         {cart.items.map(item => (
           <div key={item.productId} className="flex items-center gap-4 p-4">
-            <div className="text-3xl">📦</div>
+            <div className="text-3xl" aria-hidden="true">📦</div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm text-gray-900 truncate">{item.productName}</p>
               <p className="text-xs text-gray-400">${Number(item.unitPrice).toFixed(2)} each</p>
             </div>
-            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                className="px-2 py-1 text-gray-500 hover:bg-gray-50 text-sm"
-                onClick={() => updateItem(item.productId, item.quantity - 1)}
-              >−</button>
-              <span className="px-3 py-1 text-sm font-medium border-x border-gray-200">
-                {item.quantity}
-              </span>
-              <button
-                className="px-2 py-1 text-gray-500 hover:bg-gray-50 text-sm"
-                onClick={() => updateItem(item.productId, item.quantity + 1)}
-              >+</button>
-            </div>
+            <QuantityControl
+              quantity={item.quantity}
+              onDecrement={() => updateItem(item.productId, item.quantity - 1)}
+              onIncrement={() => updateItem(item.productId, item.quantity + 1)}
+              min={0}
+            />
             <p className="font-semibold text-sm w-20 text-right">
               ${Number(item.totalPrice || (item.unitPrice * item.quantity)).toFixed(2)}
             </p>
             <button
+              type="button"
+              aria-label={`Remove ${item.productName} from cart`}
               className="text-gray-300 hover:text-red-400 transition-colors"
               onClick={() => removeItem(item.productId)}
-            >✕</button>
+            >
+              ✕
+            </button>
           </div>
         ))}
       </div>
 
-      {/* Order summary */}
       <div className="card p-6">
         <div className="flex justify-between mb-4 text-sm">
           <span className="text-gray-500">Subtotal ({cart.totalItems} items)</span>
@@ -80,8 +83,11 @@ export default function CartPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Shipping address</label>
+          <label htmlFor="shipping-address" className="block text-sm font-medium text-gray-700 mb-1">
+            Shipping address
+          </label>
           <textarea
+            id="shipping-address"
             className="input resize-none"
             rows={2}
             placeholder="123 Main St, City, Country"
@@ -95,6 +101,7 @@ export default function CartPage() {
         )}
 
         <button
+          type="button"
           className="btn-primary w-full"
           disabled={!address.trim() || placing}
           onClick={handlePlaceOrder}

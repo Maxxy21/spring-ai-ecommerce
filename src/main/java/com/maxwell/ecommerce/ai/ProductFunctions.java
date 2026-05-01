@@ -28,6 +28,9 @@ public class ProductFunctions {
             Long productId
     ) {}
 
+    @JsonClassDescription("Result when a product is not found")
+    public record ProductNotFound(String message) {}
+
     @JsonClassDescription("Summary of a product")
     public record ProductSummary(
             Long id,
@@ -55,8 +58,12 @@ public class ProductFunctions {
     @Description("Search for products by keyword. Returns a list of matching products with name, price, and availability.")
     public Function<ProductSearchRequest, List<ProductSummary>> searchProducts(ProductRepository productRepository) {
         return request -> {
-            log.info("AI function: searchProducts keyword='{}'", request.keyword());
-            return productRepository.findByKeyword(request.keyword()).stream()
+            String keyword = request.keyword();
+            if (keyword == null || keyword.isBlank() || keyword.length() > 100) {
+                return List.of();
+            }
+            log.info("AI function: searchProducts keyword='{}'", keyword);
+            return productRepository.findByKeyword(keyword).stream()
                     .map(ProductResponse::from)
                     .map(ProductSummary::from)
                     .toList();
@@ -65,13 +72,14 @@ public class ProductFunctions {
 
     @Bean
     @Description("Get detailed information about a specific product by its ID.")
-    public Function<ProductDetailRequest, ProductSummary> getProductDetails(ProductRepository productRepository) {
+    public Function<ProductDetailRequest, Object> getProductDetails(ProductRepository productRepository) {
         return request -> {
             log.info("AI function: getProductDetails productId={}", request.productId());
             return productRepository.findById(request.productId())
                     .map(ProductResponse::from)
                     .map(ProductSummary::from)
-                    .orElse(null);
+                    .<Object>map(s -> s)
+                    .orElse(new ProductNotFound("No product found with id: " + request.productId()));
         };
     }
 }

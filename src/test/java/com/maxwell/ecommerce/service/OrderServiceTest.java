@@ -49,7 +49,6 @@ class OrderServiceTest {
                 .build();
 
         orderRequest = new OrderRequest();
-        orderRequest.setUserId("user42");
         orderRequest.setShippingAddress("123 Main St, Berlin");
     }
 
@@ -67,7 +66,7 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.save(any(Order.class))).thenReturn(saved);
 
-        OrderResponse response = orderService.placeOrder(orderRequest);
+        OrderResponse response = orderService.placeOrder("user42", orderRequest);
 
         assertThat(response.getId()).isEqualTo(10L);
         assertThat(response.getStatus()).isEqualTo(OrderStatus.PENDING);
@@ -79,7 +78,7 @@ class OrderServiceTest {
     void placeOrder_throwsCartNotFound_whenCartIsEmpty() {
         when(cartService.getCartItems("user42")).thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
+        assertThatThrownBy(() -> orderService.placeOrder("user42", orderRequest))
                 .isInstanceOf(CartNotFoundException.class);
 
         verify(orderRepository, never()).save(any());
@@ -91,7 +90,7 @@ class OrderServiceTest {
         when(cartService.getCartItems("user42")).thenReturn(List.of(cartItem));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
-        assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
+        assertThatThrownBy(() -> orderService.placeOrder("user42", orderRequest))
                 .isInstanceOf(InsufficientStockException.class)
                 .hasMessageContaining("Headphones");
 

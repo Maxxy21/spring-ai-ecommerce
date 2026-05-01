@@ -2,6 +2,7 @@ package com.maxwell.ecommerce.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -12,26 +13,28 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/products/**",
-            "/api/categories/**",
-            "/api/ai/**",
-            "/api/cart/**",
-            "/api/orders/**",
-            "/actuator/health",
-            "/swagger-ui/**",
-            "/v3/api-docs/**"
-    };
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {}) // delegate to CorsConfig WebMvcConfigurer
+                .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // Public infrastructure
+                        .requestMatchers("/actuator/health", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // Public read-only product & category browsing
+                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**").permitAll()
+                        // AI chat is public
+                        .requestMatchers("/api/ai/**").permitAll()
+                        // Cart & orders require authentication
+                        .requestMatchers("/api/cart/**").authenticated()
+                        .requestMatchers("/api/orders/**").authenticated()
+                        // Product/category write operations require authentication
+                        .requestMatchers(HttpMethod.POST, "/api/products/**", "/api/categories/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**", "/api/categories/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/products/**", "/api/categories/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**", "/api/categories/**").authenticated()
                         .anyRequest().authenticated()
                 );
 

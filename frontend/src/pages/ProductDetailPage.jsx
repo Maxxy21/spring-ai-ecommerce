@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { productApi } from '../services/api'
 import { useCart } from '../context/CartContext'
+import { categoryEmoji } from '../utils/categoryEmoji'
+import QuantityControl from '../components/QuantityControl'
+
+const ADDED_RESET_MS = 2000
 
 export default function ProductDetailPage() {
   const { id } = useParams()
@@ -9,6 +13,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [quantity, setQuantity] = useState(1)
+  const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
   const { addItem } = useCart()
 
@@ -20,9 +25,14 @@ export default function ProductDetailPage() {
   }, [id])
 
   const handleAddToCart = async () => {
-    await addItem(product.id, quantity)
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
+    setAdding(true)
+    try {
+      await addItem(product.id, quantity)
+      setAdded(true)
+      setTimeout(() => setAdded(false), ADDED_RESET_MS)
+    } finally {
+      setAdding(false)
+    }
   }
 
   if (loading) return (
@@ -47,10 +57,12 @@ export default function ProductDetailPage() {
 
       <div className="card p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row gap-8">
-          <div className="bg-gray-100 rounded-xl h-48 w-full sm:w-64 flex-shrink-0 flex items-center justify-center text-6xl">
-            {product.categoryName === 'Electronics' ? '💻' :
-             product.categoryName === 'Books' ? '📚' :
-             product.categoryName === 'Sports' ? '🏋️' : '📦'}
+          <div
+            className="bg-gray-100 rounded-xl h-48 w-full sm:w-64 flex-shrink-0 flex items-center justify-center text-6xl"
+            role="img"
+            aria-label={product.categoryName ?? 'Product'}
+          >
+            {categoryEmoji(product.categoryName)}
           </div>
 
           <div className="flex-1">
@@ -71,22 +83,20 @@ export default function ProductDetailPage() {
 
             {product.inStock && (
               <div className="flex items-center gap-3">
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                  <button
-                    className="px-3 py-2 text-gray-500 hover:bg-gray-50"
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  >−</button>
-                  <span className="px-4 py-2 text-sm font-medium border-x border-gray-300">{quantity}</span>
-                  <button
-                    className="px-3 py-2 text-gray-500 hover:bg-gray-50"
-                    onClick={() => setQuantity(q => Math.min(product.stockQuantity, q + 1))}
-                  >+</button>
-                </div>
+                <QuantityControl
+                  quantity={quantity}
+                  onDecrement={() => setQuantity(q => Math.max(1, q - 1))}
+                  onIncrement={() => setQuantity(q => Math.min(product.stockQuantity, q + 1))}
+                  min={1}
+                  max={product.stockQuantity}
+                />
                 <button
+                  type="button"
                   onClick={handleAddToCart}
+                  disabled={adding}
                   className="btn-primary flex-1"
                 >
-                  {added ? '✓ Added to cart!' : 'Add to Cart'}
+                  {added ? '✓ Added to cart!' : adding ? 'Adding...' : 'Add to Cart'}
                 </button>
               </div>
             )}

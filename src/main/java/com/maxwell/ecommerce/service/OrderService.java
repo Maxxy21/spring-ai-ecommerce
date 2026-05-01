@@ -28,10 +28,14 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CartService cartService;
 
-    public OrderResponse findById(Long id) {
-        return orderRepository.findByIdWithItems(id)
-                .map(OrderResponse::from)
+    public OrderResponse findById(Long id, String requestingUserId) {
+        Order order = orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+        if (!order.getUserId().equals(requestingUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Access denied: you can only view your own orders");
+        }
+        return OrderResponse.from(order);
     }
 
     public Page<OrderResponse> findByUser(String userId, Pageable pageable) {
@@ -39,14 +43,14 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse placeOrder(OrderRequest request) {
-        List<CartItem> cartItems = cartService.getCartItems(request.getUserId());
+    public OrderResponse placeOrder(String userId, OrderRequest request) {
+        List<CartItem> cartItems = cartService.getCartItems(userId);
         if (cartItems.isEmpty()) {
-            throw new CartNotFoundException(request.getUserId());
+            throw new CartNotFoundException(userId);
         }
 
         Order order = Order.builder()
-                .userId(request.getUserId())
+                .userId(userId)
                 .shippingAddress(request.getShippingAddress())
                 .notes(request.getNotes())
                 .status(OrderStatus.PENDING)
@@ -78,7 +82,7 @@ public class OrderService {
         order.setTotalAmount(total);
         Order saved = orderRepository.save(order);
 
-        cartService.clearCart(request.getUserId());
+        cartService.clearCart(userId);
 
         log.info("Placed order id={} for user={} total={}", saved.getId(), saved.getUserId(), saved.getTotalAmount());
         return OrderResponse.from(saved);

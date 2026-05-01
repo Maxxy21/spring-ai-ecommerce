@@ -2,6 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: '/api',
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -16,7 +17,7 @@ api.interceptors.response.use(
 // Products
 export const productApi = {
   list: (page = 0, size = 20) =>
-    api.get(`/products?page=${page}&size=${size}&sort=createdAt,desc`).then(r => r.data),
+    api.get('/products', { params: { page, size, sort: 'createdAt,desc' } }).then(r => r.data),
   getById: (id) => api.get(`/products/${id}`).then(r => r.data),
   search: (params) => api.get('/products/search', { params }).then(r => r.data),
   latest: () => api.get('/products/latest').then(r => r.data),
@@ -30,26 +31,26 @@ export const categoryApi = {
   list: () => api.get('/categories').then(r => r.data),
 }
 
-// Cart
-const USER_ID = 'demo-user'  // In a real app this comes from auth
+// Cart — userId comes from the authenticated principal on the backend.
+// The path userId must match the authenticated user; the backend enforces ownership.
 export const cartApi = {
-  get: () => api.get(`/cart/${USER_ID}`).then(r => r.data),
-  addItem: (productId, quantity = 1) =>
-    api.post(`/cart/${USER_ID}/items`, { productId, quantity }).then(r => r.data),
-  updateItem: (productId, quantity) =>
-    api.put(`/cart/${USER_ID}/items/${productId}?quantity=${quantity}`).then(r => r.data),
-  removeItem: (productId) =>
-    api.delete(`/cart/${USER_ID}/items/${productId}`).then(r => r.data),
-  clear: () => api.delete(`/cart/${USER_ID}`),
+  get: (userId) => api.get(`/cart/${userId}`).then(r => r.data),
+  addItem: (userId, productId, quantity = 1) =>
+    api.post(`/cart/${userId}/items`, { productId, quantity }).then(r => r.data),
+  updateItem: (userId, productId, quantity) =>
+    api.put(`/cart/${userId}/items/${productId}`, null, { params: { quantity } }).then(r => r.data),
+  removeItem: (userId, productId) =>
+    api.delete(`/cart/${userId}/items/${productId}`).then(r => r.data),
+  clear: (userId) => api.delete(`/cart/${userId}`),
 }
 
 // Orders
 export const orderApi = {
   place: (shippingAddress, notes = '') =>
-    api.post('/orders', { userId: USER_ID, shippingAddress, notes }).then(r => r.data),
+    api.post('/orders', { shippingAddress, notes }).then(r => r.data),
   getById: (id) => api.get(`/orders/${id}`).then(r => r.data),
-  myOrders: (page = 0) =>
-    api.get(`/orders/user/${USER_ID}?page=${page}&size=10`).then(r => r.data),
+  myOrders: (userId, page = 0) =>
+    api.get(`/orders/user/${userId}`, { params: { page, size: 10 } }).then(r => r.data),
 }
 
 // AI

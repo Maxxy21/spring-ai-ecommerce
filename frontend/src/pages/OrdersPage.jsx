@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { orderApi } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 const STATUS_COLORS = {
   PENDING:    'badge-blue',
@@ -12,6 +13,7 @@ const STATUS_COLORS = {
 }
 
 export default function OrdersPage() {
+  const { userId } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -19,11 +21,11 @@ export default function OrdersPage() {
   const newOrderId = searchParams.get('newOrder')
 
   useEffect(() => {
-    orderApi.myOrders()
+    orderApi.myOrders(userId)
       .then(data => setOrders(data.content || []))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [userId])
 
   if (loading) return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
@@ -50,7 +52,7 @@ export default function OrdersPage() {
         <div className="text-center py-12 text-red-500">{error}</div>
       )}
 
-      {!loading && !error && orders.length === 0 && (
+      {!error && orders.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">📦</p>
           <p>No orders yet. Start shopping!</p>
@@ -70,12 +72,12 @@ export default function OrdersPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className={STATUS_COLORS[order.status] || 'badge-blue'}>{order.status}</span>
+                <span className={STATUS_COLORS[order.status] ?? 'badge-blue'}>{order.status}</span>
                 <span className="font-bold">${Number(order.totalAmount).toFixed(2)}</span>
               </div>
             </div>
 
-            {order.items && order.items.length > 0 && (
+            {order.items?.length > 0 && (
               <ul className="text-sm text-gray-500 space-y-1 border-t border-gray-100 pt-3">
                 {order.items.map(item => (
                   <li key={item.id} className="flex justify-between">

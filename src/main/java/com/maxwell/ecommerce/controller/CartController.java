@@ -1,5 +1,6 @@
 package com.maxwell.ecommerce.controller;
 
+import com.maxwell.ecommerce.config.SecurityUtils;
 import com.maxwell.ecommerce.dto.request.CartItemRequest;
 import com.maxwell.ecommerce.dto.response.CartResponse;
 import com.maxwell.ecommerce.service.CartService;
@@ -24,6 +25,7 @@ public class CartController {
     @GetMapping("/{userId}")
     @Operation(summary = "Get cart for a user")
     public ResponseEntity<CartResponse> getCart(@PathVariable String userId) {
+        SecurityUtils.requireSelf(userId);
         return ResponseEntity.ok(cartService.getCart(userId));
     }
 
@@ -31,6 +33,7 @@ public class CartController {
     @Operation(summary = "Add an item to the cart")
     public ResponseEntity<CartResponse> addItem(@PathVariable String userId,
                                                  @Valid @RequestBody CartItemRequest request) {
+        SecurityUtils.requireSelf(userId);
         return ResponseEntity.ok(cartService.addItem(userId, request));
     }
 
@@ -39,6 +42,7 @@ public class CartController {
     public ResponseEntity<CartResponse> updateItem(@PathVariable String userId,
                                                     @PathVariable Long productId,
                                                     @RequestParam @Min(0) int quantity) {
+        SecurityUtils.requireSelf(userId);
         return ResponseEntity.ok(cartService.updateItem(userId, productId, quantity));
     }
 
@@ -46,12 +50,14 @@ public class CartController {
     @Operation(summary = "Remove an item from the cart")
     public ResponseEntity<CartResponse> removeItem(@PathVariable String userId,
                                                     @PathVariable Long productId) {
+        SecurityUtils.requireSelf(userId);
         return ResponseEntity.ok(cartService.removeItem(userId, productId));
     }
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "Clear the entire cart")
     public ResponseEntity<Void> clearCart(@PathVariable String userId) {
+        SecurityUtils.requireSelf(userId);
         cartService.clearCart(userId);
         return ResponseEntity.noContent().build();
     }
