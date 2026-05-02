@@ -1,18 +1,52 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { authApi } from '../services/api'
 
 const AuthContext = createContext(null)
 
-/**
- * Provides the current user identity throughout the app.
- * Replace the hardcoded userId with real auth (JWT decode, OAuth, etc.)
- * when a login system is added to the backend.
- */
 export function AuthProvider({ children }) {
-  // TODO: replace with real auth — decode JWT from localStorage or call /auth/me
-  const [userId] = useState('demo-user')
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user')
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
+
+  const login = useCallback(async (email, password) => {
+    const data = await authApi.login({ email, password })
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(data))
+    setUser(data)
+    return data
+  }, [])
+
+  const register = useCallback(async (name, email, password) => {
+    const data = await authApi.register({ name, email, password })
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(data))
+    setUser(data)
+    return data
+  }, [])
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setUser(null)
+  }, [])
+
+  useEffect(() => {
+    const handler = () => logout()
+    window.addEventListener('auth:logout', handler)
+    return () => window.removeEventListener('auth:logout', handler)
+  }, [logout])
+
+  const userId = user?.userId ?? null
+  const isAdmin = user?.role === 'ADMIN'
+  const isAuthenticated = !!user
 
   return (
-    <AuthContext.Provider value={{ userId }}>
+    <AuthContext.Provider value={{ user, userId, isAdmin, isAuthenticated, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   )

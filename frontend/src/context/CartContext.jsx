@@ -4,19 +4,22 @@ import { useAuth } from './AuthContext'
 
 const CartContext = createContext(null)
 
+const EMPTY_CART = { items: [], totalItems: 0, totalAmount: 0 }
+
 export function CartProvider({ children }) {
   const { userId } = useAuth()
-  const [cart, setCart] = useState({ items: [], totalItems: 0, totalAmount: 0 })
+  const [cart, setCart] = useState(EMPTY_CART)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const refresh = useCallback(async () => {
+    if (!userId) { setCart(EMPTY_CART); return }
     try {
       const data = await cartApi.get(userId)
       setCart(data)
       setError(null)
     } catch {
-      // cart may not exist yet for a new user — not a visible error
+      // cart may not exist yet for a new user
     }
   }, [userId])
 
@@ -65,7 +68,7 @@ export function CartProvider({ children }) {
     setLoading(true)
     try {
       await cartApi.clear(userId)
-      setCart({ items: [], totalItems: 0, totalAmount: 0 })
+      setCart(EMPTY_CART)
     } catch (err) {
       setError(err.message)
     } finally {
